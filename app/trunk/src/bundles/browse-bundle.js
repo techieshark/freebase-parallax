@@ -1023,10 +1023,10 @@ SchemaUtil.retrieveSchemas = function(instanceQueryNode, onDone) {
         }
     };
     
-    instanceQueryNode["return"] = "count";
+    instanceQueryNode["return"] = "estimate-count";
     var query = [{ "type" : "/type/type", "id" : null, "/type/type/instance" : [instanceQueryNode] }];
     
-    JsonpQueue.queryOne(query, gotTypeIDs, function(s) { log(s); onDone(); });
+    JsonpQueue.queryOne(query, gotTypeIDs, function(s) { log(s); log(query); onDone(); });
 }
 
 SchemaUtil.getTypeSchemasInBatches = function(typeIDs, onDone) {
@@ -1453,7 +1453,7 @@ TypeStack.prototype._internalRunOnDimensionsOfNextType = function(f) {
                 newQueryNode[backwardPathSegment(pathNode)] = [queryNode];
                 queryNode = newQueryNode;
             }
-            queryNode["return"] = "count";
+            queryNode["return"] = "estimate-count";
 
             JsonpQueue.queryOne(
                 [queryNode],
@@ -2840,7 +2840,7 @@ ListFacet.prototype.restrict = function(queryNode) {
             queryNode = newQueryNode;
         }
         queryNode["id|="] = this._selection;
-		firstInnerNode["return"] = "count";
+		firstInnerNode["limit"] = 0;
 			// this cuts off nested results that get returned but are of no use
     }
 };
@@ -5218,7 +5218,7 @@ JsonpQueue.cancelAll = function() {
     JsonpQueue.pendingCallIDs = {};
 };
 
-JsonpQueue.call = function(url, onDone, onError) {
+JsonpQueue.call = function(url, onDone, onError, debug) {
     if (JsonpQueue.callInProgress == 0) {
         document.body.style.cursor = "progress";
     }
@@ -5237,7 +5237,10 @@ JsonpQueue.call = function(url, onDone, onError) {
             document.body.style.cursor = "auto";
         }
         
-        script.parentNode.removeChild(script);
+		if (!(debug)) {
+			script.parentNode.removeChild(script);
+		}
+		
         try {
             delete window["cb" + callbackID];
             delete window["err" + callbackID];
@@ -5283,7 +5286,7 @@ JsonpQueue.call = function(url, onDone, onError) {
     document.getElementsByTagName("head")[0].appendChild(script);
 };
 
-JsonpQueue.queryOne = function(query, onDone, onError) {
+JsonpQueue.queryOne = function(query, onDone, onError, debug) {
     var q = JSON.stringify({ "q1" : { "query" : query } });
     var url = 'http://freebase.com/api/service/mqlread?queries=' + encodeURIComponent(q);
     var onDone2 = function(o) {
@@ -5300,7 +5303,7 @@ JsonpQueue.queryOne = function(query, onDone, onError) {
             onError("Unknown");
         }
     }
-    JsonpQueue.call(url, onDone2, onError2);
+    JsonpQueue.call(url, onDone2, onError2, debug);
 };
 function renderTopicPage(itemID, outerDiv, onDone, focusHandler, pivotHandler) {
     new TopicPageRendering(itemID, outerDiv, onDone, focusHandler, pivotHandler);

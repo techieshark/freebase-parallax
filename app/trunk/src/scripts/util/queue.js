@@ -7,7 +7,7 @@ JsonpQueue.cancelAll = function() {
     JsonpQueue.pendingCallIDs = {};
 };
 
-JsonpQueue.call = function(url, onDone, onError) {
+JsonpQueue.call = function(url, onDone, onError, debug) {
     if (JsonpQueue.callInProgress == 0) {
         document.body.style.cursor = "progress";
     }
@@ -26,7 +26,10 @@ JsonpQueue.call = function(url, onDone, onError) {
             document.body.style.cursor = "auto";
         }
         
-        script.parentNode.removeChild(script);
+		if (!(debug)) {
+			script.parentNode.removeChild(script);
+		}
+		
         try {
             delete window["cb" + callbackID];
             delete window["err" + callbackID];
@@ -72,7 +75,7 @@ JsonpQueue.call = function(url, onDone, onError) {
     document.getElementsByTagName("head")[0].appendChild(script);
 };
 
-JsonpQueue.queryOne = function(query, onDone, onError) {
+JsonpQueue.queryOne = function(query, onDone, onError, debug) {
     var q = JSON.stringify({ "q1" : { "query" : query } });
     var url = 'http://freebase.com/api/service/mqlread?queries=' + encodeURIComponent(q);
     var onDone2 = function(o) {
@@ -89,5 +92,5 @@ JsonpQueue.queryOne = function(query, onDone, onError) {
             onError("Unknown");
         }
     }
-    JsonpQueue.call(url, onDone2, onError2);
+    JsonpQueue.call(url, onDone2, onError2, debug);
 };

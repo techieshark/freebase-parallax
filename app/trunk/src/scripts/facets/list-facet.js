@@ -138,7 +138,7 @@ ListFacet.prototype.restrict = function(queryNode) {
             queryNode = newQueryNode;
         }
         queryNode["id|="] = this._selection;
-		firstInnerNode["return"] = "count";
+		firstInnerNode["limit"] = 0;
 			// this cuts off nested results that get returned but are of no use
     }
 };

@@ -63,10 +63,10 @@ SchemaUtil.retrieveSchemas = function(instanceQueryNode, onDone) {
         }
     };
     
-    instanceQueryNode["return"] = "count";
+    instanceQueryNode["return"] = "estimate-count";
     var query = [{ "type" : "/type/type", "id" : null, "/type/type/instance" : [instanceQueryNode] }];
     
-    JsonpQueue.queryOne(query, gotTypeIDs, function(s) { log(s); onDone(); });
+    JsonpQueue.queryOne(query, gotTypeIDs, function(s) { log(s); log(query); onDone(); });
 }
 
 SchemaUtil.getTypeSchemasInBatches = function(typeIDs, onDone) {

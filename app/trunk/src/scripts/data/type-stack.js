@@ -213,7 +213,7 @@ TypeStack.prototype._internalRunOnDimensionsOfNextType = function(f) {
                 newQueryNode[backwardPathSegment(pathNode)] = [queryNode];
                 queryNode = newQueryNode;
             }
-            queryNode["return"] = "count";
+            queryNode["return"] = "estimate-count";
 
             JsonpQueue.queryOne(
                 [queryNode],
