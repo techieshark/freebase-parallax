@@ -1453,7 +1453,7 @@ TypeStack.prototype._internalRunOnDimensionsOfNextType = function(f) {
                 newQueryNode[backwardPathSegment(pathNode)] = [queryNode];
                 queryNode = newQueryNode;
             }
-            queryNode["return"] = "estimate-count";
+            queryNode["return"] = typeRecord.count > 1000 ? "estimate-count" : "count";
 
             JsonpQueue.queryOne(
                 [queryNode],
