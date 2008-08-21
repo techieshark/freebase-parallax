@@ -23,6 +23,8 @@ function chart1DViewQuery(job, onDone) {
     }
     
     var queryNode = job.queryNode;
+	queryNode["limit"] = 1000;
+	
     var proxyQueryNode = extendQueryNodeWithPath(queryNode, proxyPath);
     if (proxyQueryNode != queryNode && job.valuePath.length > 0) {
         proxyQueryNode["name"] = null;

@@ -32,6 +32,7 @@ function mapViewQuery(job, onDone) {
     }
     
     var queryNode = job.queryNode;
+	queryNode["limit"] = 1000;
     
     var proxyQueryNode = extendQueryNodeWithPath(queryNode, proxyPath);
     if (proxyQueryNode != queryNode && job.locationPath.length > 0) {

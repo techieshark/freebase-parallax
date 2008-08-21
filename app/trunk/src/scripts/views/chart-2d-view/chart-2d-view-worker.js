@@ -33,6 +33,8 @@ function chart2DViewQuery(job, onDone) {
     }
     
     var queryNode = job.queryNode;
+	queryNode["limit"] = 1000;
+	
     var proxyQueryNode = extendQueryNodeWithPath(queryNode, proxyPath);
     
     var xValueQueryNode = extendQueryNodeWithPath(proxyQueryNode, job.xValuePath);

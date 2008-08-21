@@ -6444,6 +6444,8 @@ function chart1DViewQuery(job, onDone) {
     }
     
     var queryNode = job.queryNode;
+	queryNode["limit"] = 1000;
+	
     var proxyQueryNode = extendQueryNodeWithPath(queryNode, proxyPath);
     if (proxyQueryNode != queryNode && job.valuePath.length > 0) {
         proxyQueryNode["name"] = null;
@@ -6968,6 +6970,8 @@ function chart2DViewQuery(job, onDone) {
     }
     
     var queryNode = job.queryNode;
+	queryNode["limit"] = 1000;
+	
     var proxyQueryNode = extendQueryNodeWithPath(queryNode, proxyPath);
     
     var xValueQueryNode = extendQueryNodeWithPath(proxyQueryNode, job.xValuePath);
@@ -7609,6 +7613,7 @@ function mapViewQuery(job, onDone) {
     }
     
     var queryNode = job.queryNode;
+	queryNode["limit"] = 1000;
     
     var proxyQueryNode = extendQueryNodeWithPath(queryNode, proxyPath);
     if (proxyQueryNode != queryNode && job.locationPath.length > 0) {
@@ -8235,6 +8240,8 @@ function timelineViewQuery(job, onDone) {
     }
     
     var queryNode = job.queryNode;
+	queryNode["limit"] = 1000;
+	
     var proxyQueryNode = extendQueryNodeWithPath(queryNode, proxyPath);
     if (proxyQueryNode != queryNode && job.startPath.length > 0) {
         proxyQueryNode["name"] = null;
