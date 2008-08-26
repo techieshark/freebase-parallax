@@ -5,8 +5,12 @@ var debug = false;
 var showExplanation = false;
 
 var log = (window.console) ? function(s) { window.console.log(s); } : /*window.alert*/ function() {};
-function genericErrorHandler(s) {
-    log(s);
+function genericErrorHandler(s, query) {
+	if (typeof query == "object") {
+		log(s + ": " + JSON.stringify(query));
+	} else {
+		log(s);
+	}
 }
 
 function onLoad() {

@@ -230,9 +230,17 @@ ListFacet.prototype._startRenderChoices = function() {
         this._dom.statusSection.style.display = "block";
         
         var self = this;
-        JsonpQueue.queryOne([ this._createChoiceQuery() ], function(o) {
-            self._onRenderChoicesResults(o.result);
-        }, genericErrorHandler);
+        JsonpQueue.queryOne(
+			[ this._createChoiceQuery() ], 
+			function(o) {
+				self._onRenderChoicesResults(o.result);
+			}, 
+			function(s, query) {
+				genericErrorHandler(s, query);
+				self._dom.bodyDiv.style.display = "none";
+				self._dom.statusSection.style.display = "none";
+			}
+		);
     }
 };
 

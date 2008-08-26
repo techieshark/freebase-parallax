@@ -5,8 +5,12 @@ var debug = false;
 var showExplanation = false;
 
 var log = (window.console) ? function(s) { window.console.log(s); } : /*window.alert*/ function() {};
-function genericErrorHandler(s) {
-    log(s);
+function genericErrorHandler(s, query) {
+	if (typeof query == "object") {
+		log(s + ": " + JSON.stringify(query));
+	} else {
+		log(s);
+	}
 }
 
 function onLoad() {
@@ -2932,9 +2936,17 @@ ListFacet.prototype._startRenderChoices = function() {
         this._dom.statusSection.style.display = "block";
         
         var self = this;
-        JsonpQueue.queryOne([ this._createChoiceQuery() ], function(o) {
-            self._onRenderChoicesResults(o.result);
-        }, genericErrorHandler);
+        JsonpQueue.queryOne(
+			[ this._createChoiceQuery() ], 
+			function(o) {
+				self._onRenderChoicesResults(o.result);
+			}, 
+			function(s, query) {
+				genericErrorHandler(s, query);
+				self._dom.bodyDiv.style.display = "none";
+				self._dom.statusSection.style.display = "none";
+			}
+		);
     }
 };
 
@@ -5271,7 +5283,7 @@ JsonpQueue.call = function(url, onDone, onError, debug) {
         if (cleanup()) {
             if (typeof onError == "function") {
                 try {
-                    onError();
+                    onError(url);
                 } catch (e) {
                     log(e);
                 }
@@ -5292,7 +5304,7 @@ JsonpQueue.queryOne = function(query, onDone, onError, debug) {
     var onDone2 = function(o) {
         if (o.q1.code == "/api/status/error") {
             if (typeof onError == "function") {
-                onError(o.q1.messages[0].message);
+                onError(o.q1.messages[0].message, query);
             }
         } else {
             onDone(o.q1);
@@ -5300,7 +5312,7 @@ JsonpQueue.queryOne = function(query, onDone, onError, debug) {
     };
     var onError2 = function() {
         if (typeof onError == "function") {
-            onError("Unknown");
+            onError("Unknown", query);
         }
     }
     JsonpQueue.call(url, onDone2, onError2, debug);

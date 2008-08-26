@@ -60,7 +60,7 @@ JsonpQueue.call = function(url, onDone, onError, debug) {
         if (cleanup()) {
             if (typeof onError == "function") {
                 try {
-                    onError();
+                    onError(url);
                 } catch (e) {
                     log(e);
                 }
@@ -81,7 +81,7 @@ JsonpQueue.queryOne = function(query, onDone, onError, debug) {
     var onDone2 = function(o) {
         if (o.q1.code == "/api/status/error") {
             if (typeof onError == "function") {
-                onError(o.q1.messages[0].message);
+                onError(o.q1.messages[0].message, query);
             }
         } else {
             onDone(o.q1);
@@ -89,7 +89,7 @@ JsonpQueue.queryOne = function(query, onDone, onError, debug) {
     };
     var onError2 = function() {
         if (typeof onError == "function") {
-            onError("Unknown");
+            onError("Unknown", query);
         }
     }
     JsonpQueue.call(url, onDone2, onError2, debug);
