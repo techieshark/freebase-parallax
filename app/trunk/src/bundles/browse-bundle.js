@@ -2832,7 +2832,7 @@ ListFacet.prototype.restrict = function(queryNode) {
         for (var i = 0; i < path.length; i++) {
             var pathNode = path[i];
             var newQueryNode = {};
-            queryNode[forwardPathSegment(pathNode)] = [newQueryNode];
+            queryNode["f:" + forwardPathSegment(pathNode)] = [newQueryNode];
             
 			if (firstInnerNode == null) {
 				firstInnerNode = newQueryNode;
