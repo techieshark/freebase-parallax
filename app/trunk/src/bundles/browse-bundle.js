@@ -8232,6 +8232,9 @@ function timelineViewQuery(job, onDone) {
     if (job.hasEnd) {
         paths.push(job.endPath);
     }
+    if (job.hasLabel) {
+        paths.push(job.labelPath);
+    }
     if (job.hasColor) {
         paths.push(job.colorPath);
     }
@@ -8242,13 +8245,17 @@ function timelineViewQuery(job, onDone) {
     job.startPath = removeProxyPath(job.startPath, proxyPath);
     var startNodeIterator = createForwardPathIterator(job.startPath);
     
-    if (job.hasColor) {
-        job.colorPath = removeProxyPath(job.colorPath, proxyPath);
-        var colorNodeIterator = createForwardPathIterator(job.colorPath);
-    }
     if (job.hasEnd) {
         job.endPath = removeProxyPath(job.endPath, proxyPath);
         var endNodeIterator = createForwardPathIterator(job.endPath);
+    }
+    if (job.hasLabel) {
+        job.labelPath = removeProxyPath(job.labelPath, proxyPath);
+        var labelNodeIterator = createForwardPathIterator(job.labelPath);
+    }
+    if (job.hasColor) {
+        job.colorPath = removeProxyPath(job.colorPath, proxyPath);
+        var colorNodeIterator = createForwardPathIterator(job.colorPath);
     }
     
     var queryNode = job.queryNode;
@@ -8267,6 +8274,16 @@ function timelineViewQuery(job, onDone) {
         if (!("value" in endQueryNode)) {
             endQueryNode["value"] = null;
         }
+    }
+    if (job.hasLabel) {
+        var labelQueryNode = extendQueryNodeWithPath(proxyQueryNode, job.labelPath);
+        if (!("name" in labelQueryNode)) {
+            labelQueryNode["name"] = null;
+        }
+        if (!("id" in labelQueryNode)) {
+            labelQueryNode["id"] = null;
+        }
+        makeQueryNodeOptionalIfEmpty(labelQueryNode);
     }
     if (job.hasColor) {
         var colorQueryNode = extendQueryNodeWithPath(proxyQueryNode, job.colorPath);
@@ -8303,6 +8320,9 @@ function timelineViewQuery(job, onDone) {
             
             if (job.hasEnd) {
                 endNodeIterator(proxyNode, function(node) { point.end = getDate(node) });
+            }
+            if (job.hasLabel) {
+                labelNodeIterator(proxyNode, function(node) { point.itemID = node.id; point.itemName = node.name; });
             }
             if (job.hasColor) {
                 var colorNode = null;
@@ -8447,6 +8467,7 @@ function TimelineView(collection, label) {
     
     this._startPropertyPicker = new PropertyPickerWidget(false, true);
     this._endPropertyPicker = new PropertyPickerWidget(false, true);
+    this._labelPropertyPicker = new PropertyPickerWidget(false, true);
     this._colorPropertyPicker = new PropertyPickerWidget(false, true);
     
     this._setBaseRestrictionsToPropertyPickers();
@@ -8479,6 +8500,7 @@ TimelineView.prototype.getState = function() {
     return {
         s: this._startPropertyPicker.getState(),
         e: this._endPropertyPicker.getState(),
+        l: this._labelPropertyPicker.getState(),
         c: this._colorPropertyPicker.getState()
     };
 };
@@ -8490,6 +8512,9 @@ TimelineView.prototype.getClassName = function() {
 TimelineView.prototype.reconfigureFromState = function(state) {
     this._startPropertyPicker.reconfigureFromState(state.s);
     this._endPropertyPicker.reconfigureFromState(state.e);
+    if ("l" in state) {
+        this._labelPropertyPicker.reconfigureFromState(state.l);
+    }
     this._colorPropertyPicker.reconfigureFromState(state.c);
 };
 
@@ -8506,6 +8531,7 @@ TimelineView.prototype.uninstallUI = function() {
     
     this._startPropertyPicker.uninstallUI();
     this._endPropertyPicker.uninstallUI();
+    this._labelPropertyPicker.uninstallUI();
     this._colorPropertyPicker.uninstallUI();
     
     this._div.innerHTML = "";
@@ -8524,6 +8550,7 @@ TimelineView.prototype._constructUI = function() {
         '<div class="timeline-view-controls"><table width="100%" cellspacing="10">' +
             '<tr><td width="10%">Start:</td><td colspan="2"></td></tr>' +
             '<tr><td width="10%">End:</td><td colspan="2"></td></tr>' +
+            '<tr><td width="10%">Label:</td><td colspan="2"></td></tr>' +
             '<tr><td width="10%">Color:</td><td colspan="2"></td></tr>' +
             '<tr><td colspan="2"><button>Render&nbsp;Timeline</button></td><td align="right" width="10%"><a href="javascript:{}" class="action">embed&nbsp;this&nbsp;timeline</a></td></tr>' +
         '</table></div>' +
@@ -8540,8 +8567,9 @@ TimelineView.prototype._constructUI = function() {
     
     this._startPropertyPicker.installUI(this._dom.controlTable.rows[0].cells[1]);
     this._endPropertyPicker.installUI(this._dom.controlTable.rows[1].cells[1]);
-    this._colorPropertyPicker.installUI(this._dom.controlTable.rows[2].cells[1]);
-    this._dom.controlTable.rows[3].cells[0].firstChild.onclick = function() {
+    this._labelPropertyPicker.installUI(this._dom.controlTable.rows[2].cells[1]);
+    this._colorPropertyPicker.installUI(this._dom.controlTable.rows[3].cells[1]);
+    this._dom.controlTable.rows[4].cells[0].firstChild.onclick = function() {
         Logging.log("timeline-view-re-render", { "state" : self.getState() });
         self._reRender(); 
     };
@@ -8574,6 +8602,7 @@ TimelineView.prototype.onRootItemsChanged = function() {
 TimelineView.prototype._setBaseRestrictionsToPropertyPickers = function() {
     this._startPropertyPicker.setBaseQueryNode(this.collection.addBaseRestrictions());
     this._endPropertyPicker.setBaseQueryNode(this.collection.addBaseRestrictions());
+    this._labelPropertyPicker.setBaseQueryNode(this.collection.addBaseRestrictions());
     this._colorPropertyPicker.setBaseQueryNode(this.collection.addBaseRestrictions());
 };
 
@@ -8594,14 +8623,18 @@ TimelineView.prototype._createJob = function() {
     var job = {
         queryNode:      queryNode,
         startPath:      this._startPropertyPicker.getTotalPath(),
+        hasEnd:         this._endPropertyPicker.specified,
         hasColor:       this._colorPropertyPicker.specified,
-        hasEnd:         this._endPropertyPicker.specified
+        hasLabel:       this._labelPropertyPicker.specified
     };
-    if (job.hasColor) {
-        job.colorPath = this._colorPropertyPicker.getTotalPath();
-    }
     if (job.hasEnd) {
         job.endPath = this._endPropertyPicker.getTotalPath();
+    }
+    if (job.hasLabel) {
+        job.labelPath = this._labelPropertyPicker.getTotalPath();
+    }
+    if (job.hasColor) {
+        job.colorPath = this._colorPropertyPicker.getTotalPath();
     }
     return job;
 };

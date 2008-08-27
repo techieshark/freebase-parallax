@@ -3,6 +3,9 @@ function timelineViewQuery(job, onDone) {
     if (job.hasEnd) {
         paths.push(job.endPath);
     }
+    if (job.hasLabel) {
+        paths.push(job.labelPath);
+    }
     if (job.hasColor) {
         paths.push(job.colorPath);
     }
@@ -13,13 +16,17 @@ function timelineViewQuery(job, onDone) {
     job.startPath = removeProxyPath(job.startPath, proxyPath);
     var startNodeIterator = createForwardPathIterator(job.startPath);
     
-    if (job.hasColor) {
-        job.colorPath = removeProxyPath(job.colorPath, proxyPath);
-        var colorNodeIterator = createForwardPathIterator(job.colorPath);
-    }
     if (job.hasEnd) {
         job.endPath = removeProxyPath(job.endPath, proxyPath);
         var endNodeIterator = createForwardPathIterator(job.endPath);
+    }
+    if (job.hasLabel) {
+        job.labelPath = removeProxyPath(job.labelPath, proxyPath);
+        var labelNodeIterator = createForwardPathIterator(job.labelPath);
+    }
+    if (job.hasColor) {
+        job.colorPath = removeProxyPath(job.colorPath, proxyPath);
+        var colorNodeIterator = createForwardPathIterator(job.colorPath);
     }
     
     var queryNode = job.queryNode;
@@ -38,6 +45,16 @@ function timelineViewQuery(job, onDone) {
         if (!("value" in endQueryNode)) {
             endQueryNode["value"] = null;
         }
+    }
+    if (job.hasLabel) {
+        var labelQueryNode = extendQueryNodeWithPath(proxyQueryNode, job.labelPath);
+        if (!("name" in labelQueryNode)) {
+            labelQueryNode["name"] = null;
+        }
+        if (!("id" in labelQueryNode)) {
+            labelQueryNode["id"] = null;
+        }
+        makeQueryNodeOptionalIfEmpty(labelQueryNode);
     }
     if (job.hasColor) {
         var colorQueryNode = extendQueryNodeWithPath(proxyQueryNode, job.colorPath);
@@ -74,6 +91,9 @@ function timelineViewQuery(job, onDone) {
             
             if (job.hasEnd) {
                 endNodeIterator(proxyNode, function(node) { point.end = getDate(node) });
+            }
+            if (job.hasLabel) {
+                labelNodeIterator(proxyNode, function(node) { point.itemID = node.id; point.itemName = node.name; });
             }
             if (job.hasColor) {
                 var colorNode = null;
