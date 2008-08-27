@@ -116,7 +116,7 @@ TimelineView.prototype._constructUI = function() {
         Logging.log("timeline-view-re-render", { "state" : self.getState() });
         self._reRender(); 
     };
-    this._dom.controlTable.rows[3].cells[1].firstChild.onclick = function() {
+    this._dom.controlTable.rows[4].cells[1].firstChild.onclick = function() {
         Logging.log("timeline-view-embed", {});
         self._embed(); 
     };
