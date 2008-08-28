@@ -87,10 +87,12 @@ PropertyPickerWidget.prototype.installUI = function(elmt) {
 };
 
 PropertyPickerWidget.prototype.uninstallUI = function() {
-    this._elmt.innerHTML = "";
-    this._elmt = null;
-    
-    this._dom = null;
+    if (this._elmt != null) {
+        this._elmt.innerHTML = "";
+        this._elmt = null;
+        
+        this._dom = null;
+    }
 };
 
 PropertyPickerWidget.prototype._render = function() {

@@ -738,6 +738,34 @@ div.topic-view-browse-all {
 
 .tabular-view-header-label {
 	font-weight: bold;
+}
+
+.tabular-view-header-remove-button {
+    float: right;
+    margin-left: 3px;
+    cursor: pointer;
+}
+
+.tabular-view-header-edit-button {
+    float: right;
+}
+
+.tabular-view-header-editing {
+    background: #ddf;
+}
+
+.tabular-view-header-editing-container {
+    background: #ddf;
+    padding: 1em;
+}
+
+td.tabular-view-data-cell {
+    border-top: 1px solid #ddd;
+    vertical-align: top;
+}
+
+.tabular-view-data-cell ol {
+    padding-left: 1.5em;
 }.timeline-view-controls {
 	margin: 		20px 0px;
 	background:		#eee;

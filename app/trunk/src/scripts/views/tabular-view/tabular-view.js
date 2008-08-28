@@ -5,11 +5,16 @@ function TabularView(collection, label) {
     this._div = null;
     this._dom = null;
     this._colorCoder = new DefaultColorCoder();
-	
-	this._sortColumnIndex = 0;
-	this._sortColumnAscending = true;
-	this._columnRecords = [ this._constructColumnRecord(true) ];
+    
+    this._sortColumnIndex = 0;
+    this._sortColumnAscending = true;
+    this._columnRecords = [ this._constructColumnRecord(true) ];
     this._rowColorPropertyPicker = new PropertyPickerWidget(false, true, false);
+    
+    this._editing = false;
+    this._editingElmt = null;
+    this._editingIndex = -1;
+    this._editingColumnRecord = null;
     
     this._setBaseRestrictionsToPropertyPickers();
     
@@ -21,8 +26,8 @@ TabularView.prototype.getLabel = function() {
 };
 
 TabularView.prototype.dispose = function() {
-	this._disposeColumnRecords();
-	
+    this._disposeColumnRecords();
+    
     this._rowColorPropertyPicker.dispose();
     this._rowColorPropertyPicker = null;
 
@@ -34,17 +39,17 @@ TabularView.prototype.dispose = function() {
 };
 
 TabularView.prototype.getState = function() {
-	var columnRecords = [];
-	for (var i = 0; i < this._columnRecords.length; i++) {
-		var columnRecord = this._columnRecords[i];
-		columnRecords.push({ p: columnRecord.propertyPicker.getState() });
-	}
-	
+    var columnRecords = [];
+    for (var i = 0; i < this._columnRecords.length; i++) {
+        var columnRecord = this._columnRecords[i];
+        columnRecords.push({ p: columnRecord.propertyPicker.getState() });
+    }
+    
     return {
-		cols: 	columnRecords,
-		sort:	this._sortColumnIndex,
-		asc:	this._sortColumnAscending,
-        c: 		this._rowColorPropertyPicker.getState()
+        cols:     columnRecords,
+        sort:    this._sortColumnIndex,
+        asc:    this._sortColumnAscending,
+        c:         this._rowColorPropertyPicker.getState()
     };
 };
 
@@ -53,30 +58,30 @@ TabularView.prototype.getClassName = function() {
 };
 
 TabularView.prototype.reconfigureFromState = function(state) {
-	this._uninstallColumnUI();
-	this._disposeColumnRecords();
-	this._columnRecords = [];
-	
-	var columnRecordStates = state.cols;
-	for (var i = 0; i < columnRecordStates.length; i++) {
-		var columnRecordState = columnRecordStates[i];
-		
-		var columnRecord = this._constructColumnRecord();
-		this._columnRecords.push(columnRecord);
-		
-		columnRecord.propertyPicker.reconfigureFromState(columnRecordState.p);
-	}
-	
+    this._uninstallColumnUI();
+    this._disposeColumnRecords();
+    this._columnRecords = [];
+    
+    var columnRecordStates = state.cols;
+    for (var i = 0; i < columnRecordStates.length; i++) {
+        var columnRecordState = columnRecordStates[i];
+        
+        var columnRecord = this._constructColumnRecord();
+        this._columnRecords.push(columnRecord);
+        
+        columnRecord.propertyPicker.reconfigureFromState(columnRecordState.p);
+    }
+    
     this._rowColorPropertyPicker.reconfigureFromState(state.c);
 };
 
 TabularView.prototype._disposeColumnRecords = function() {
-	for (var i = 0; i < this._columnRecords.length; i++) {
-		var columnRecord = this._columnRecords[i];
-		columnRecord.propertyPicker.dispose();
-		columnRecord.propertyPicker = null;
-	}
-	this._columnRecords = null;
+    for (var i = 0; i < this._columnRecords.length; i++) {
+        var columnRecord = this._columnRecords[i];
+        columnRecord.propertyPicker.dispose();
+        columnRecord.propertyPicker = null;
+    }
+    this._columnRecords = null;
 };
 
 TabularView.prototype.installUI = function(div) {
@@ -86,27 +91,44 @@ TabularView.prototype.installUI = function(div) {
 };
 
 TabularView.prototype.uninstallUI = function() {
-	this._uninstallColumnUI();
+    this._uninstallColumnUI();
     this._rowColorPropertyPicker.uninstallUI();
+    
+    this._disposeEditingUI();
     
     this._div.innerHTML = "";
     this._div = null;
     this._dom = null;
 };
 
+TabularView.prototype._disposeEditingUI = function() {
+    if (this._editing) {
+        this._editingColumnRecord.propertyPicker.uninstallUI();
+        if (this._editingIndex == this._columnRecords.length) {
+            this._editingColumnRecord.propertyPicker.dispose();
+            this._editingColumnRecord = null;
+        }
+        
+        this._editingElmt.innerHTML = "";
+        this._editingElmt = null;
+        this._editingIndex = -1;
+        this._editing = false;
+    }
+};
+
 TabularView.prototype._uninstallColumnUI = function() {
-	if (this._div != null) {
-		for (var i = 0; i < this._columnRecords.length; i++) {
-			var columnRecord = this._columnRecords[i];
-			columnRecord.propertyPicker.uninstallUI();
-		}
-	}
+    if (this._div != null) {
+        for (var i = 0; i < this._columnRecords.length; i++) {
+            var columnRecord = this._columnRecords[i];
+            columnRecord.propertyPicker.uninstallUI();
+        }
+    }
 };
 
 TabularView.prototype._constructColumnRecord = function(defaultToTopics) {
-	return {
-		propertyPicker: new PropertyPickerWidget(defaultToTopics, true, false)
-	};
+    return {
+        propertyPicker: new PropertyPickerWidget(defaultToTopics, true, false)
+    };
 };
 
 TabularView.prototype.onModeChanged = function(mode) {
@@ -151,10 +173,10 @@ TabularView.prototype.onRootItemsChanged = function() {
 };
 
 TabularView.prototype._setBaseRestrictionsToPropertyPickers = function() {
-	for (var i = 0; i < this._columnRecords.length; i++) {
-		var columnRecord = this._columnRecords[i];
-		columnRecord.propertyPicker.setBaseQueryNode(this.collection.addBaseRestrictions());
-	}
+    for (var i = 0; i < this._columnRecords.length; i++) {
+        var columnRecord = this._columnRecords[i];
+        columnRecord.propertyPicker.setBaseQueryNode(this.collection.addBaseRestrictions());
+    }
     this._rowColorPropertyPicker.setBaseQueryNode(this.collection.addBaseRestrictions());
 };
 
@@ -171,55 +193,58 @@ TabularView.prototype._createJob = function() {
     this.collection.addRestrictions(queryNode);
     
     var job = {
-        queryNode:      		queryNode,
-		columnConfigs:  		[],
-		sortColumnIndex:		this._sortColumnIndex,
-		sortColumnAscending:	this._sortColumnAscending,
-        hasRowColor:    		this._rowColorPropertyPicker.specified
-	};
+        queryNode:              queryNode,
+        columnConfigs:          [],
+        sortColumnIndex:        this._sortColumnIndex,
+        sortColumnAscending:    this._sortColumnAscending,
+        hasRowColor:            this._rowColorPropertyPicker.specified
+    };
     if (job.hasRowColor) {
         job.rowColorPath = this._rowColorPropertyPicker.getTotalPath();
-		job.rowColorValuesAreNative = true;
-		if (job.rowColorPath.length == 0) {
-			job.rowColorValuesAreNative = false;
-		} else {
-			var propertyID = job.rowColorPath[job.rowColorPath.length - 1];
-			if (propertyID in SchemaUtil.propertyRecords) {
-				var propertyRecord = SchemaUtil.propertyRecords[propertyID];
-				if (!(propertyRecord.expectedType in SchemaUtil.nativeTypes)) {
-					job.rowColorValuesAreNative = false;
-				}
-			}
-		}
+        job.rowColorValuesAreNative = true;
+        if (job.rowColorPath.length == 0) {
+            job.rowColorValuesAreNative = false;
+        } else {
+            var propertyID = job.rowColorPath[job.rowColorPath.length - 1];
+            if (propertyID in SchemaUtil.propertyRecords) {
+                var propertyRecord = SchemaUtil.propertyRecords[propertyID];
+                if (!(propertyRecord.expectedType in SchemaUtil.nativeTypes)) {
+                    job.rowColorValuesAreNative = false;
+                }
+            }
+        }
     }
-	
-	var createColumnConfig = function(columnRecord) {
-		var columnConfig = { valuesAreNative: false };
-		if (columnRecord.propertyPicker.specified) {
-			columnConfig.path = columnRecord.propertyPicker.getTotalPath();
-			
-			if (columnConfig.path.length == 0) {
-				columnConfig.label = "Topic";
-			} else {
-				var propertyID = columnConfig.path[columnConfig.path.length - 1];
-				if (propertyID in SchemaUtil.propertyRecords) {
-					var propertyRecord = SchemaUtil.propertyRecords[propertyID];
-					if (!(propertyRecord.expectedType in SchemaUtil.nativeTypes)) {
-						columnConfig.label = propertyRecord.name;
-						return columnConfig;
-					}
-				}
-				
-				columnConfig.label = propertyID;
-				columnConfig.valuesAreNative = true;
-			}
-		}
-		return columnConfig;
-	};
-	
-	for (var i = 0; i < this._columnRecords.length; i++) {
-		job.columnConfigs.push(createColumnConfig(this._columnRecords[i]));
-	}
+    
+    var createColumnConfig = function(columnRecord) {
+        var columnConfig = {
+            valuesAreNative: false
+        };
+        if (columnRecord.propertyPicker.specified) {
+            columnConfig.path = columnRecord.propertyPicker.getTotalPath();
+            
+            if (columnConfig.path.length == 0) {
+                columnConfig.label = "Topic";
+                columnConfig.valuesAreNative = false;
+            } else {
+                var propertyID = columnConfig.path[columnConfig.path.length - 1].property;
+                columnConfig.label = propertyID;
+                
+                if (propertyID in SchemaUtil.propertyRecords) {
+                    var propertyRecord = SchemaUtil.propertyRecords[propertyID];
+                    columnConfig.label = propertyRecord.name;
+                    
+                    if (propertyRecord.expectedType in SchemaUtil.nativeTypes) {
+                        columnConfig.valuesAreNative = true;
+                    }
+                }
+            }
+        }
+        return columnConfig;
+    };
+    
+    for (var i = 0; i < this._columnRecords.length; i++) {
+        job.columnConfigs.push(createColumnConfig(this._columnRecords[i]));
+    }
     return job;
 };
 
@@ -234,16 +259,24 @@ TabularView.prototype._startRenderView = function() {
     
     var self = this;
     tabularViewQuery(job, function(rows) {
-		var onAddColumn = function() {
-			self._columnRecords.push(self._constructColumnRecord(false));
-			self._startRenderView();
-		};
-		var onRemoveColumn = function(index) {
-			self._columnRecords.splice(index, 1);
-			self._startRenderView();
-		};
-		
-        tabularViewRender(self._dom.canvasDiv, job, rows, onAddColumn, onRemoveColumn);
+        var onAddColumn = function(actionElmt, editElmt) {
+            self._startEditing(self._columnRecords.length, self._constructColumnRecord(false), editElmt);
+        };
+        var onRemoveColumn = function(actionElmt, index) {
+            self._columnRecords.splice(index, 1);
+            self._startRenderView();
+        };
+        var onEditColumn = function(actionElmt, index, editElmt) {
+            self._startEditing(index, self._columnRecords[index], editElmt);
+        };
+        
+        tabularViewRender(self._dom.canvasDiv, job, rows, {
+            editable:           true,
+            onAddColumn:        onAddColumn, 
+            onRemoveColumn:     onRemoveColumn, 
+            onEditColumn:       onEditColumn,
+            onFocus:            onNewTopic
+        });
         
         if (job.hasRowColorKeys) {
             for (var key in job.rowColorKeys) {
@@ -274,11 +307,42 @@ TabularView.prototype._startRenderView = function() {
 TabularView.prototype._embed = function() {
     var job = this._createJob();
     
-	var url = document.location.href;
-	var q = url.indexOf("browse.html");
-	url = url.substr(0, q) + "tabular-view-embed.html?" + encodeURIComponent(JSON.stringify(job));
-	
-	var html = '<iframe height="600" width="100%" src="' + url + '"></iframe>';
-	
-	window.prompt("HTML code to copy:", html);
+    var url = document.location.href;
+    var q = url.indexOf("browse.html");
+    url = url.substr(0, q) + "tabular-view-embed.html?" + encodeURIComponent(JSON.stringify(job));
+    
+    var html = '<iframe height="600" width="100%" src="' + url + '"></iframe>';
+    
+    window.prompt("HTML code to copy:", html);
+};
+
+TabularView.prototype._startEditing = function(columnIndex, columnRecord, editElmt) {
+    this._disposeEditingUI();
+    
+    this._editingElmt = editElmt;
+    this._editingIndex = columnIndex;
+    this._editingColumnRecord = columnRecord;
+    this._editing = true;
+    
+    editElmt.parentNode.style.display = ""; // show tr
+    editElmt.innerHTML = "";
+    
+    var divPicker = document.createElement("div");
+    editElmt.appendChild(divPicker);
+    columnRecord.propertyPicker.installUI(divPicker);
+    
+    var divControls = document.createElement("div");
+    divControls.innerHTML = "<button>Done</button> <button>Cancel</button>";
+    editElmt.appendChild(divControls);
+    
+    var self = this;
+    var doneButton = divControls.getElementsByTagName("button")[0];
+    doneButton.onclick = function() {
+        if (columnIndex == self._columnRecords.length) {
+            self._columnRecords.push(columnRecord);
+        }
+        
+        self._disposeEditingUI();
+        self._startRenderView();
+    };
 };

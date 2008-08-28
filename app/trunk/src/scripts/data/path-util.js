@@ -59,7 +59,11 @@ function createForwardPathIterator(path) {
     };
 };
 
-function extendQueryNodeWithPath(queryNode, path) {
+function extendQueryNodeWithPath(queryNode, path, optional) {
+    if (optional == undefined) {
+        optional = true;
+    }
+    
     for (var i = 0; i < path.length; i++) {
         var pathNode = path[i];
         var segment = forwardPathSegment(pathNode);
@@ -72,6 +76,10 @@ function extendQueryNodeWithPath(queryNode, path) {
             }
         } else {
             newQueryNode = {};
+            if (optional) {
+                newQueryNode["optional"] = true;
+            }
+            
             queryNode[segment] = [newQueryNode];
         }
         queryNode = newQueryNode;
