@@ -687,6 +687,7 @@ TrailPoint.prototype._showAddViewPopup = function(elmt) {
     processView(TimelineView, "Timeline");
     processView(Chart1DView, "Chart 1D");
     processView(Chart2DView, "Chart 2D");
+	processView(TabularView, "Table");
 
     popupDom.open();
 };

@@ -722,7 +722,23 @@ div.topic-view-browse-all {
 .map-view-legend-entry img {
 	margin-right: 5px;
 }
-.timeline-view-controls {
+.tabular-view-controls {
+	margin: 		20px 0px;
+	background:		#eee;
+}
+.tabular-view-legend {
+	padding:	20px;
+}
+.tabular-view-legend-entry {
+	margin-bottom: 2px;
+}
+.tabular-view-legend-entry img {
+	margin-right: 5px;
+}
+
+.tabular-view-header-label {
+	font-weight: bold;
+}.timeline-view-controls {
 	margin: 		20px 0px;
 	background:		#eee;
 }

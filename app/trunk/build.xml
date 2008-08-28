@@ -19,6 +19,7 @@
             <include name="views/timeline-view.css" />
             <include name="views/chart1d-view.css" />
             <include name="views/chart2d-view.css" />
+			<include name="views/tabular-view.css" />
         	<include name="thumbnail.css" />
         </fileset>
         <fileset dir="src/styles">
@@ -60,6 +61,8 @@
             <include name="views/chart-1d-view/chart-1d-view-worker.js" />
             <include name="views/chart-2d-view/chart-2d-view.js" />
             <include name="views/chart-2d-view/chart-2d-view-worker.js" />
+            <include name="views/tabular-view/tabular-view.js" />
+            <include name="views/tabular-view/tabular-view-worker.js" />
             
             <include name="facets/list-facet.js" />
             <include name="facets/text-search-facet.js" />
