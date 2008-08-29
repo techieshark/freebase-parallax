@@ -1,19 +1,29 @@
 .tabular-view-controls {
-	margin: 		20px 0px;
-	background:		#eee;
+    margin:         20px 0px;
+    background:        #eee;
 }
 .tabular-view-legend {
-	padding:	20px;
+    padding:    20px;
 }
 .tabular-view-legend-entry {
-	margin-bottom: 2px;
+    margin-bottom: 2px;
 }
 .tabular-view-legend-entry img {
-	margin-right: 5px;
+    margin-right: 5px;
+}
+
+.tabular-view-table td {
+    border-left: 1px solid #ddd;
+    padding: 3px 5px;
+}
+
+td.tabular-view-header-cell {
+    background: #eee;
 }
 
 .tabular-view-header-label {
-	font-weight: bold;
+    font-weight: bold;
+    cursor: pointer;
 }
 
 .tabular-view-header-remove-button {
@@ -26,13 +36,20 @@
     float: right;
 }
 
-.tabular-view-header-editing {
-    background: #ddf;
+td.tabular-view-header-editing {
+    background: #E4E4BC;
 }
 
-.tabular-view-header-editing-container {
-    background: #ddf;
+td.tabular-view-header-editing-container {
+    background: #E4E4BC;
     padding: 1em;
+}
+
+.tabular-view-editing-settings {
+    margin-bottom: 1em;
+}
+
+.tabular-view-editing-controls {
 }
 
 td.tabular-view-data-cell {

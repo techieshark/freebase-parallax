@@ -104,10 +104,8 @@ TabularView.prototype.uninstallUI = function() {
 TabularView.prototype._disposeEditingUI = function() {
     if (this._editing) {
         this._editingColumnRecord.propertyPicker.uninstallUI();
-        if (this._editingIndex == this._columnRecords.length) {
-            this._editingColumnRecord.propertyPicker.dispose();
-            this._editingColumnRecord = null;
-        }
+        this._editingColumnRecord.propertyPicker.dispose();
+        this._editingColumnRecord = null;
         
         this._editingElmt.innerHTML = "";
         this._editingElmt = null;
@@ -205,7 +203,7 @@ TabularView.prototype._createJob = function() {
         if (job.rowColorPath.length == 0) {
             job.rowColorValuesAreNative = false;
         } else {
-            var propertyID = job.rowColorPath[job.rowColorPath.length - 1];
+            var propertyID = job.rowColorPath[job.rowColorPath.length - 1].property;
             if (propertyID in SchemaUtil.propertyRecords) {
                 var propertyRecord = SchemaUtil.propertyRecords[propertyID];
                 if (!(propertyRecord.expectedType in SchemaUtil.nativeTypes)) {
@@ -217,7 +215,8 @@ TabularView.prototype._createJob = function() {
     
     var createColumnConfig = function(columnRecord) {
         var columnConfig = {
-            valuesAreNative: false
+            valuesAreNative: false,
+            valueType: ""
         };
         if (columnRecord.propertyPicker.specified) {
             columnConfig.path = columnRecord.propertyPicker.getTotalPath();
@@ -232,6 +231,7 @@ TabularView.prototype._createJob = function() {
                 if (propertyID in SchemaUtil.propertyRecords) {
                     var propertyRecord = SchemaUtil.propertyRecords[propertyID];
                     columnConfig.label = propertyRecord.name;
+                    columnConfig.valueType = propertyRecord.expectedType;
                     
                     if (propertyRecord.expectedType in SchemaUtil.nativeTypes) {
                         columnConfig.valuesAreNative = true;
@@ -259,24 +259,50 @@ TabularView.prototype._startRenderView = function() {
     
     var self = this;
     tabularViewQuery(job, function(rows) {
-        var onAddColumn = function(actionElmt, editElmt) {
-            self._startEditing(self._columnRecords.length, self._constructColumnRecord(false), editElmt);
+        if (self._sortColumnIndex >= 0) {
+            tabularViewSort(rows, self._sortColumnIndex, self._sortColumnAscending);
+        }
+        
+        var onAddColumn = function(actionElmt, editElmt, revertEditingUI) {
+            self._startEditing(self._columnRecords.length, self._constructColumnRecord(false), editElmt, revertEditingUI);
         };
         var onRemoveColumn = function(actionElmt, index) {
             self._columnRecords.splice(index, 1);
             self._startRenderView();
         };
-        var onEditColumn = function(actionElmt, index, editElmt) {
-            self._startEditing(index, self._columnRecords[index], editElmt);
-        };
+        var onEditColumn = function(actionElmt, index, editElmt, revertEditingUI) {
+            var columnRecord = self._constructColumnRecord(false);
+            columnRecord.propertyPicker.reconfigureFromState(self._columnRecords[index].propertyPicker.getState());
         
-        tabularViewRender(self._dom.canvasDiv, job, rows, {
-            editable:           true,
-            onAddColumn:        onAddColumn, 
-            onRemoveColumn:     onRemoveColumn, 
-            onEditColumn:       onEditColumn,
-            onFocus:            onNewTopic
-        });
+            self._startEditing(index, columnRecord, editElmt, revertEditingUI);
+        };
+        var onSortColumn = function(index) {
+            if (index == self._sortColumnIndex) {
+                self._sortColumnAscending = !self._sortColumnAscending;
+            } else {
+                self._sortColumnIndex = index;
+                self._sortColumnAscending = true;
+            }
+            job.sortColumnIndex = self._sortColumnIndex;
+            job.sortColumnAscending = self._sortColumnAscending;
+            
+            tabularViewSort(rows, self._sortColumnIndex, self._sortColumnAscending, job.columnConfigs[self._sortColumnIndex].valueType);
+            
+            render();
+        };
+        var render = function() {
+            tabularViewRender(self._dom.canvasDiv, job, rows, 
+                {
+                    editable:           true,
+                    onAddColumn:        onAddColumn, 
+                    onRemoveColumn:     onRemoveColumn, 
+                    onEditColumn:       onEditColumn,
+                    onFocus:            onNewTopic,
+                    onSortColumn:       onSortColumn
+                }
+            );
+        };
+        render();
         
         if (job.hasRowColorKeys) {
             for (var key in job.rowColorKeys) {
@@ -316,7 +342,7 @@ TabularView.prototype._embed = function() {
     window.prompt("HTML code to copy:", html);
 };
 
-TabularView.prototype._startEditing = function(columnIndex, columnRecord, editElmt) {
+TabularView.prototype._startEditing = function(columnIndex, columnRecord, editElmt, onCancel) {
     this._disposeEditingUI();
     
     this._editingElmt = editElmt;
@@ -324,25 +350,27 @@ TabularView.prototype._startEditing = function(columnIndex, columnRecord, editEl
     this._editingColumnRecord = columnRecord;
     this._editing = true;
     
-    editElmt.parentNode.style.display = ""; // show tr
     editElmt.innerHTML = "";
     
     var divPicker = document.createElement("div");
+    divPicker.className = "tabular-view-editing-settings";
     editElmt.appendChild(divPicker);
-    columnRecord.propertyPicker.installUI(divPicker);
+    this._editingColumnRecord.propertyPicker.installUI(divPicker);
     
     var divControls = document.createElement("div");
+    divControls.className = "tabular-view-editing-controls";
     divControls.innerHTML = "<button>Done</button> <button>Cancel</button>";
     editElmt.appendChild(divControls);
     
     var self = this;
-    var doneButton = divControls.getElementsByTagName("button")[0];
-    doneButton.onclick = function() {
-        if (columnIndex == self._columnRecords.length) {
-            self._columnRecords.push(columnRecord);
-        }
-        
+    var buttons = divControls.getElementsByTagName("button");
+    buttons[0].onclick = function() {
+        self._columnRecords[columnIndex] = columnRecord;
         self._disposeEditingUI();
         self._startRenderView();
+    };
+    buttons[1].onclick = function() {
+        self._disposeEditingUI();
+        onCancel();
     };
 };

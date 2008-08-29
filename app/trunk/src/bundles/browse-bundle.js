@@ -8146,14 +8146,8 @@ function tabularViewQuery(job, onDone) {
                     var valueNodeVisitor = function(valueNode) {
                         if ("name" in valueNode) {
                             cell.values.push({ name: valueNode.name, id: valueNode.id });
-                            if (cell.values.length == 1) {
-                                cell.sortKey = valueNode.name;
-                            }
                         } else {
                             cell.values.push({ value: valueNode.value });
-                            if (cell.values.length == 1) {
-                                cell.sortKey = valueNode.value.toString();
-                            }
                         }
                     };
                     
@@ -8177,6 +8171,100 @@ function tabularViewQuery(job, onDone) {
     JsonpQueue.queryOne([queryNode], gotRestrictedItems, genericErrorHandler);
 };
 
+function tabularViewSort(rows, columnIndex, sortAscending, valueType) {
+    var stringComparator = function(a, b) {
+        return a.sortKey.localeCompare(b.sortKey);
+    };
+    var numericComparator = function(a, b) {
+        return a.sortKey - b.sortKey;
+    };
+    
+    var sortKeyGenerator;
+    var sortKeyDefault;
+    var sortKeyComparator;
+    if (valueType in SchemaUtil.nativeTypes) {
+        switch (valueType) {
+        case '/type/int':
+        case '/type/float':
+            sortKeyGenerator = function(valueEntry) {
+                if (valueEntry != null) {
+                    try {
+                        var n = parseFloat(valueEntry.value);
+                        if (!isNaN(n)) {
+                            return n;
+                        }
+                    } catch (e) {}
+                }
+                return null;
+            };
+            sortKeyDefault = Number.NEGATIVE_INFINITY;
+            sortKeyComparator = numericComparator;
+            break;
+        case '/type/boolean':
+            sortKeyGenerator = function(valueEntry) {
+                if (valueEntry != null) {
+                    if ("value" in valueEntry) {
+                        if (typeof valueEntry.value == "boolean") {
+                            return valueEntry.value ? 1 : 0;
+                        } else {
+                            var s = valueEntry.value.toString().toLowerCase();
+                            if (s == "true") {
+                                return 1;
+                            } else if (s == "false") {
+                                return 0;
+                            }
+                        }
+                    }
+                }
+                return null;
+            };
+            sortKeyDefault = -1;
+            sortKeyComparator = numericComparator;
+            break;
+            
+        default:
+            sortKeyGenerator = function(valueEntry) {
+                if (valueEntry != null) {
+                    if ("value" in valueEntry) {
+                        var s = valueEntry.value.toString().toLowerCase();
+                        return s;
+                    }
+                }
+                return null;
+            };
+            sortKeyDefault = "";
+            sortKeyComparator = stringComparator;
+        }
+    } else {
+        sortKeyGenerator = function(valueEntry) {
+            if (valueEntry != null) {
+                if ("name" in valueEntry) {
+                    var s = valueEntry.name.toLowerCase();
+                    return s;
+                }
+            }
+            return null;
+        };
+        sortKeyDefault = "";
+        sortKeyComparator = stringComparator;
+    }
+    
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var cell = row.cells[columnIndex];
+        var values = cell.values;
+        
+        var sortKey = null;
+        for (var v = 0; sortKey == null && v < values.length; v++) {
+            sortKey = sortKeyGenerator(values[v]);
+        }
+        
+        row.sortKey = (sortKey == null) ? sortKeyDefault : sortKey;
+    }
+    
+    var comparator = sortAscending ? sortKeyComparator : function(a, b) { return sortKeyComparator(b, a); };
+    rows.sort(comparator);
+};
 
 function tabularViewRender(div, job, rows, settings) {
     div.innerHTML = "";
@@ -8185,9 +8273,9 @@ function tabularViewRender(div, job, rows, settings) {
     }
     
     var table = document.createElement("table");
+    table.className = "tabular-view-table";
     //table.setAttribute("border", "1");
     table.setAttribute("cellspacing", "0");
-    table.setAttribute("cellpadding", "2");
     table.setAttribute("width", "100%");
     div.appendChild(table);
     
@@ -8204,8 +8292,16 @@ function tabularViewRender(div, job, rows, settings) {
     tdEdit.className = "tabular-view-header-editing-container";
     trEdit.style.display = "none";
     
+    var revertEditingUI = function() {
+        var cells = trHead.cells;
+        for (var i = 0; i < cells.length; i++) {
+            cells[i].className = "tabular-view-header-cell";
+        }
+        trEdit.style.display = "none";
+    };
     var createColumnHeader = function(columnConfig, c) {
         var td = trHead.insertCell(c);
+        td.className = "tabular-view-header-cell";
         
         if (c > 0 && settings.editable) {
             var img = SimileAjax.Graphics.createTranslucentImage("images/close-button.png", "middle");
@@ -8217,13 +8313,27 @@ function tabularViewRender(div, job, rows, settings) {
             aEditColumn.className = "action tabular-view-header-edit-button";
             aEditColumn.href = "javascript:{}";
             aEditColumn.innerHTML = "edit";
-            aEditColumn.onclick = function() { td.className = "tabular-view-header-editing"; settings.onEditColumn(aEditColumn, c, tdEdit); };
+            aEditColumn.onclick = function() {
+                revertEditingUI();
+                
+                trEdit.style.display = "";
+                td.className = "tabular-view-header-cell tabular-view-header-editing"; 
+                settings.onEditColumn(aEditColumn, c, tdEdit, revertEditingUI); 
+            };
             td.appendChild(aEditColumn);
         }
         
         var spanLabel = document.createElement("span");
         spanLabel.className = "tabular-view-header-label";
         spanLabel.appendChild(document.createTextNode("label" in columnConfig ? columnConfig.label : "?"));
+        if (c == job.sortColumnIndex) {
+            var imgSort = SimileAjax.Graphics.createTranslucentImage(
+                job.sortColumnAscending ? "images/up-arrow.png" : "images/down-arrow.png", "middle");
+            spanLabel.appendChild(imgSort);
+        }
+        spanLabel.onclick = function() {
+            settings.onSortColumn(c);
+        };
         td.appendChild(spanLabel);
     };
     for (var c = 0; c < job.columnConfigs.length; c++) {
@@ -8233,13 +8343,20 @@ function tabularViewRender(div, job, rows, settings) {
     
     if (settings.editable) {
         var tdAdd = trHead.insertCell(job.columnConfigs.length);
+        tdAdd.className = "tabular-view-header-cell";
         tdAdd.setAttribute("width", "1%");
         
         var aAddColumn = document.createElement("a");
         aAddColumn.className = "action";
         aAddColumn.href = "javascript:{}";
         aAddColumn.innerHTML = "add";
-        aAddColumn.onclick = function() { tdAdd.className = "tabular-view-header-editing"; settings.onAddColumn(aAddColumn, tdEdit); };
+        aAddColumn.onclick = function() {
+            revertEditingUI();
+                
+            trEdit.style.display = "";
+            tdAdd.className = "tabular-view-header-cell tabular-view-header-editing";
+            settings.onAddColumn(aAddColumn, tdEdit, revertEditingUI);
+        };
         tdAdd.appendChild(aAddColumn);
     }
     
@@ -8267,6 +8384,10 @@ function tabularViewRender(div, job, rows, settings) {
     for (var r = 0; r < rows.length; r++) {
         var row = rows[r];
         var tr = table.insertRow(r + 2);
+        
+        if ("color" in row) {
+            tr.style.backgroundColor = row.color;
+        }
         
         var cells = row.cells;
         for (var c = 0; c < cells.length; c++) {
@@ -8399,10 +8520,8 @@ TabularView.prototype.uninstallUI = function() {
 TabularView.prototype._disposeEditingUI = function() {
     if (this._editing) {
         this._editingColumnRecord.propertyPicker.uninstallUI();
-        if (this._editingIndex == this._columnRecords.length) {
-            this._editingColumnRecord.propertyPicker.dispose();
-            this._editingColumnRecord = null;
-        }
+        this._editingColumnRecord.propertyPicker.dispose();
+        this._editingColumnRecord = null;
         
         this._editingElmt.innerHTML = "";
         this._editingElmt = null;
@@ -8500,7 +8619,7 @@ TabularView.prototype._createJob = function() {
         if (job.rowColorPath.length == 0) {
             job.rowColorValuesAreNative = false;
         } else {
-            var propertyID = job.rowColorPath[job.rowColorPath.length - 1];
+            var propertyID = job.rowColorPath[job.rowColorPath.length - 1].property;
             if (propertyID in SchemaUtil.propertyRecords) {
                 var propertyRecord = SchemaUtil.propertyRecords[propertyID];
                 if (!(propertyRecord.expectedType in SchemaUtil.nativeTypes)) {
@@ -8512,7 +8631,8 @@ TabularView.prototype._createJob = function() {
     
     var createColumnConfig = function(columnRecord) {
         var columnConfig = {
-            valuesAreNative: false
+            valuesAreNative: false,
+            valueType: ""
         };
         if (columnRecord.propertyPicker.specified) {
             columnConfig.path = columnRecord.propertyPicker.getTotalPath();
@@ -8527,6 +8647,7 @@ TabularView.prototype._createJob = function() {
                 if (propertyID in SchemaUtil.propertyRecords) {
                     var propertyRecord = SchemaUtil.propertyRecords[propertyID];
                     columnConfig.label = propertyRecord.name;
+                    columnConfig.valueType = propertyRecord.expectedType;
                     
                     if (propertyRecord.expectedType in SchemaUtil.nativeTypes) {
                         columnConfig.valuesAreNative = true;
@@ -8554,24 +8675,50 @@ TabularView.prototype._startRenderView = function() {
     
     var self = this;
     tabularViewQuery(job, function(rows) {
-        var onAddColumn = function(actionElmt, editElmt) {
-            self._startEditing(self._columnRecords.length, self._constructColumnRecord(false), editElmt);
+        if (self._sortColumnIndex >= 0) {
+            tabularViewSort(rows, self._sortColumnIndex, self._sortColumnAscending);
+        }
+        
+        var onAddColumn = function(actionElmt, editElmt, revertEditingUI) {
+            self._startEditing(self._columnRecords.length, self._constructColumnRecord(false), editElmt, revertEditingUI);
         };
         var onRemoveColumn = function(actionElmt, index) {
             self._columnRecords.splice(index, 1);
             self._startRenderView();
         };
-        var onEditColumn = function(actionElmt, index, editElmt) {
-            self._startEditing(index, self._columnRecords[index], editElmt);
-        };
+        var onEditColumn = function(actionElmt, index, editElmt, revertEditingUI) {
+            var columnRecord = self._constructColumnRecord(false);
+            columnRecord.propertyPicker.reconfigureFromState(self._columnRecords[index].propertyPicker.getState());
         
-        tabularViewRender(self._dom.canvasDiv, job, rows, {
-            editable:           true,
-            onAddColumn:        onAddColumn, 
-            onRemoveColumn:     onRemoveColumn, 
-            onEditColumn:       onEditColumn,
-            onFocus:            onNewTopic
-        });
+            self._startEditing(index, columnRecord, editElmt, revertEditingUI);
+        };
+        var onSortColumn = function(index) {
+            if (index == self._sortColumnIndex) {
+                self._sortColumnAscending = !self._sortColumnAscending;
+            } else {
+                self._sortColumnIndex = index;
+                self._sortColumnAscending = true;
+            }
+            job.sortColumnIndex = self._sortColumnIndex;
+            job.sortColumnAscending = self._sortColumnAscending;
+            
+            tabularViewSort(rows, self._sortColumnIndex, self._sortColumnAscending, job.columnConfigs[self._sortColumnIndex].valueType);
+            
+            render();
+        };
+        var render = function() {
+            tabularViewRender(self._dom.canvasDiv, job, rows, 
+                {
+                    editable:           true,
+                    onAddColumn:        onAddColumn, 
+                    onRemoveColumn:     onRemoveColumn, 
+                    onEditColumn:       onEditColumn,
+                    onFocus:            onNewTopic,
+                    onSortColumn:       onSortColumn
+                }
+            );
+        };
+        render();
         
         if (job.hasRowColorKeys) {
             for (var key in job.rowColorKeys) {
@@ -8611,7 +8758,7 @@ TabularView.prototype._embed = function() {
     window.prompt("HTML code to copy:", html);
 };
 
-TabularView.prototype._startEditing = function(columnIndex, columnRecord, editElmt) {
+TabularView.prototype._startEditing = function(columnIndex, columnRecord, editElmt, onCancel) {
     this._disposeEditingUI();
     
     this._editingElmt = editElmt;
@@ -8619,26 +8766,28 @@ TabularView.prototype._startEditing = function(columnIndex, columnRecord, editEl
     this._editingColumnRecord = columnRecord;
     this._editing = true;
     
-    editElmt.parentNode.style.display = ""; // show tr
     editElmt.innerHTML = "";
     
     var divPicker = document.createElement("div");
+    divPicker.className = "tabular-view-editing-settings";
     editElmt.appendChild(divPicker);
-    columnRecord.propertyPicker.installUI(divPicker);
+    this._editingColumnRecord.propertyPicker.installUI(divPicker);
     
     var divControls = document.createElement("div");
+    divControls.className = "tabular-view-editing-controls";
     divControls.innerHTML = "<button>Done</button> <button>Cancel</button>";
     editElmt.appendChild(divControls);
     
     var self = this;
-    var doneButton = divControls.getElementsByTagName("button")[0];
-    doneButton.onclick = function() {
-        if (columnIndex == self._columnRecords.length) {
-            self._columnRecords.push(columnRecord);
-        }
-        
+    var buttons = divControls.getElementsByTagName("button");
+    buttons[0].onclick = function() {
+        self._columnRecords[columnIndex] = columnRecord;
         self._disposeEditingUI();
         self._startRenderView();
+    };
+    buttons[1].onclick = function() {
+        self._disposeEditingUI();
+        onCancel();
     };
 };
 function ThumbnailView(collection) {

@@ -67,14 +67,8 @@ function tabularViewQuery(job, onDone) {
                     var valueNodeVisitor = function(valueNode) {
                         if ("name" in valueNode) {
                             cell.values.push({ name: valueNode.name, id: valueNode.id });
-                            if (cell.values.length == 1) {
-                                cell.sortKey = valueNode.name;
-                            }
                         } else {
                             cell.values.push({ value: valueNode.value });
-                            if (cell.values.length == 1) {
-                                cell.sortKey = valueNode.value.toString();
-                            }
                         }
                     };
                     
@@ -98,6 +92,100 @@ function tabularViewQuery(job, onDone) {
     JsonpQueue.queryOne([queryNode], gotRestrictedItems, genericErrorHandler);
 };
 
+function tabularViewSort(rows, columnIndex, sortAscending, valueType) {
+    var stringComparator = function(a, b) {
+        return a.sortKey.localeCompare(b.sortKey);
+    };
+    var numericComparator = function(a, b) {
+        return a.sortKey - b.sortKey;
+    };
+    
+    var sortKeyGenerator;
+    var sortKeyDefault;
+    var sortKeyComparator;
+    if (valueType in SchemaUtil.nativeTypes) {
+        switch (valueType) {
+        case '/type/int':
+        case '/type/float':
+            sortKeyGenerator = function(valueEntry) {
+                if (valueEntry != null) {
+                    try {
+                        var n = parseFloat(valueEntry.value);
+                        if (!isNaN(n)) {
+                            return n;
+                        }
+                    } catch (e) {}
+                }
+                return null;
+            };
+            sortKeyDefault = Number.NEGATIVE_INFINITY;
+            sortKeyComparator = numericComparator;
+            break;
+        case '/type/boolean':
+            sortKeyGenerator = function(valueEntry) {
+                if (valueEntry != null) {
+                    if ("value" in valueEntry) {
+                        if (typeof valueEntry.value == "boolean") {
+                            return valueEntry.value ? 1 : 0;
+                        } else {
+                            var s = valueEntry.value.toString().toLowerCase();
+                            if (s == "true") {
+                                return 1;
+                            } else if (s == "false") {
+                                return 0;
+                            }
+                        }
+                    }
+                }
+                return null;
+            };
+            sortKeyDefault = -1;
+            sortKeyComparator = numericComparator;
+            break;
+            
+        default:
+            sortKeyGenerator = function(valueEntry) {
+                if (valueEntry != null) {
+                    if ("value" in valueEntry) {
+                        var s = valueEntry.value.toString().toLowerCase();
+                        return s;
+                    }
+                }
+                return null;
+            };
+            sortKeyDefault = "";
+            sortKeyComparator = stringComparator;
+        }
+    } else {
+        sortKeyGenerator = function(valueEntry) {
+            if (valueEntry != null) {
+                if ("name" in valueEntry) {
+                    var s = valueEntry.name.toLowerCase();
+                    return s;
+                }
+            }
+            return null;
+        };
+        sortKeyDefault = "";
+        sortKeyComparator = stringComparator;
+    }
+    
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var cell = row.cells[columnIndex];
+        var values = cell.values;
+        
+        var sortKey = null;
+        for (var v = 0; sortKey == null && v < values.length; v++) {
+            sortKey = sortKeyGenerator(values[v]);
+        }
+        
+        row.sortKey = (sortKey == null) ? sortKeyDefault : sortKey;
+    }
+    
+    var comparator = sortAscending ? sortKeyComparator : function(a, b) { return sortKeyComparator(b, a); };
+    rows.sort(comparator);
+};
 
 function tabularViewRender(div, job, rows, settings) {
     div.innerHTML = "";
@@ -106,9 +194,9 @@ function tabularViewRender(div, job, rows, settings) {
     }
     
     var table = document.createElement("table");
+    table.className = "tabular-view-table";
     //table.setAttribute("border", "1");
     table.setAttribute("cellspacing", "0");
-    table.setAttribute("cellpadding", "2");
     table.setAttribute("width", "100%");
     div.appendChild(table);
     
@@ -125,8 +213,16 @@ function tabularViewRender(div, job, rows, settings) {
     tdEdit.className = "tabular-view-header-editing-container";
     trEdit.style.display = "none";
     
+    var revertEditingUI = function() {
+        var cells = trHead.cells;
+        for (var i = 0; i < cells.length; i++) {
+            cells[i].className = "tabular-view-header-cell";
+        }
+        trEdit.style.display = "none";
+    };
     var createColumnHeader = function(columnConfig, c) {
         var td = trHead.insertCell(c);
+        td.className = "tabular-view-header-cell";
         
         if (c > 0 && settings.editable) {
             var img = SimileAjax.Graphics.createTranslucentImage("images/close-button.png", "middle");
@@ -138,13 +234,27 @@ function tabularViewRender(div, job, rows, settings) {
             aEditColumn.className = "action tabular-view-header-edit-button";
             aEditColumn.href = "javascript:{}";
             aEditColumn.innerHTML = "edit";
-            aEditColumn.onclick = function() { td.className = "tabular-view-header-editing"; settings.onEditColumn(aEditColumn, c, tdEdit); };
+            aEditColumn.onclick = function() {
+                revertEditingUI();
+                
+                trEdit.style.display = "";
+                td.className = "tabular-view-header-cell tabular-view-header-editing"; 
+                settings.onEditColumn(aEditColumn, c, tdEdit, revertEditingUI); 
+            };
             td.appendChild(aEditColumn);
         }
         
         var spanLabel = document.createElement("span");
         spanLabel.className = "tabular-view-header-label";
         spanLabel.appendChild(document.createTextNode("label" in columnConfig ? columnConfig.label : "?"));
+        if (c == job.sortColumnIndex) {
+            var imgSort = SimileAjax.Graphics.createTranslucentImage(
+                job.sortColumnAscending ? "images/up-arrow.png" : "images/down-arrow.png", "middle");
+            spanLabel.appendChild(imgSort);
+        }
+        spanLabel.onclick = function() {
+            settings.onSortColumn(c);
+        };
         td.appendChild(spanLabel);
     };
     for (var c = 0; c < job.columnConfigs.length; c++) {
@@ -154,13 +264,20 @@ function tabularViewRender(div, job, rows, settings) {
     
     if (settings.editable) {
         var tdAdd = trHead.insertCell(job.columnConfigs.length);
+        tdAdd.className = "tabular-view-header-cell";
         tdAdd.setAttribute("width", "1%");
         
         var aAddColumn = document.createElement("a");
         aAddColumn.className = "action";
         aAddColumn.href = "javascript:{}";
         aAddColumn.innerHTML = "add";
-        aAddColumn.onclick = function() { tdAdd.className = "tabular-view-header-editing"; settings.onAddColumn(aAddColumn, tdEdit); };
+        aAddColumn.onclick = function() {
+            revertEditingUI();
+                
+            trEdit.style.display = "";
+            tdAdd.className = "tabular-view-header-cell tabular-view-header-editing";
+            settings.onAddColumn(aAddColumn, tdEdit, revertEditingUI);
+        };
         tdAdd.appendChild(aAddColumn);
     }
     
@@ -188,6 +305,10 @@ function tabularViewRender(div, job, rows, settings) {
     for (var r = 0; r < rows.length; r++) {
         var row = rows[r];
         var tr = table.insertRow(r + 2);
+        
+        if ("color" in row) {
+            tr.style.backgroundColor = row.color;
+        }
         
         var cells = row.cells;
         for (var c = 0; c < cells.length; c++) {
