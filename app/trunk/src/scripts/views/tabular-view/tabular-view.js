@@ -124,9 +124,10 @@ TabularView.prototype._uninstallColumnUI = function() {
 };
 
 TabularView.prototype._constructColumnRecord = function(defaultToTopics) {
-    return {
-        propertyPicker: new PropertyPickerWidget(defaultToTopics, true, false)
-    };
+    var propertyPicker = new PropertyPickerWidget(defaultToTopics, true, false);
+    propertyPicker.setBaseQueryNode(this.collection.addBaseRestrictions());
+    
+    return { propertyPicker: propertyPicker };
 };
 
 TabularView.prototype.onModeChanged = function(mode) {
