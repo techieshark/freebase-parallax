@@ -10,6 +10,7 @@ var Logging = {
 })();
 
 Logging.log = function(event, payload) {
+	/*
     var d = new Date();
     var ds = "" + d.getUTCFullYear() + "-" + Logging._pad2(d.getUTCMonth() + 1) + "-" + Logging._pad2(d.getUTCDate()) + "T" +
         Logging._pad2(d.getUTCHours()) + ":" + Logging._pad2(d.getUTCMinutes()) + ":" + Logging._pad2(d.getUTCSeconds()) + "Z";
@@ -30,4 +31,5 @@ Logging.log = function(event, payload) {
     document.getElementsByTagName("head")[0].appendChild(script);
     
     window.setTimeout(function() { script.parentNode.removeChild(script); }, 1000);
+    */
 };
