@@ -77,7 +77,7 @@ JsonpQueue.call = function(url, onDone, onError, debug) {
 
 JsonpQueue.queryOne = function(query, onDone, onError, debug) {
     var q = JSON.stringify({ "q1" : { "query" : query } });
-    var url = 'http://freebase.com/api/service/mqlread?queries=' + encodeURIComponent(q);
+    var url = ParallaxConfig.corpusBaseUrl + 'api/service/mqlread?queries=' + encodeURIComponent(q);
     var onDone2 = function(o) {
         if (o.q1.code == "/api/status/error") {
             if (typeof onError == "function") {

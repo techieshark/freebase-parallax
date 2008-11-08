@@ -286,7 +286,7 @@ function tabularViewRender(div, job, rows, settings) {
      */
     var createTopicValue = function(valueEntry) {
         var a = document.createElement("a");
-        a.href = "http://www.freebase.com/view" + valueEntry.id;
+        a.href = ParallaxConfig.corpusBaseUrl + "view" + valueEntry.id;
         a.appendChild(document.createTextNode(valueEntry.name));
         $(a).click(function(evt) { 
             Logging.log("tabular-view-to-topic", { "id" : valueEntry.id });

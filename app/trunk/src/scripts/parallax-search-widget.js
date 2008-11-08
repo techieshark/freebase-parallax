@@ -15,7 +15,7 @@ ParallaxSearchWidget.defaultQueryHandler = function(query) {
     if ("search" in query) {
         params.push("search=" + encodeURIComponent(query.search));
     }
-    window.location = "browse.html?" + params.join("&");
+    window.location = window.ParallaxConfig.appendConfigParams("browse.html?" + params.join("&"));
 };
 
 ParallaxSearchWidget._Impl = function(input, queryHandler) {
@@ -473,7 +473,7 @@ ParallaxSearchWidget._Impl.prototype._onQuerySpecificTopicsFailed = function(tex
 };
 
 ParallaxSearchWidget._Impl.prototype._queryIndividualTopics = function(text) {
-    var url = "http://www.freebase.com/api/service/search?strict=false&explain=false&limit=3&query=" + encodeURIComponent(text);
+    var url = ParallaxConfig.corpusBaseUrl + "api/service/search?strict=false&explain=false&limit=3&query=" + encodeURIComponent(text);
     var self = this;
 
     this._resultPanelDom.individualResultSection.style.display = "block";
@@ -537,7 +537,7 @@ ParallaxSearchWidget._Impl.prototype._onQueryIndividualTopicsDone = function(tex
                 
                 var img = document.createElement("img");
                 img.className = "parallax-search-widget-result-topic-image";
-                img.src = "http://freebase.com/api/trans/image_thumb" + imageID +
+                img.src = ParallaxConfig.corpusBaseUrl + "api/trans/image_thumb" + imageID +
                     "?" + [ 
                         "mode=fillcrop",
                         "maxheight=40",

@@ -128,7 +128,7 @@ function mapViewQuery(job, onDone) {
                         if (a != null && a.length > 0) {
                             var node2 = a[0];
                             if ("id" in node2 && typeof node2.id == "string") {
-                                point.image = "http://freebase.com/api/trans/image_thumb" + node2.id +
+                                point.image = ParallaxConfig.corpusBaseUrl + "api/trans/image_thumb" + node2.id +
                                     "?" + [ 
                                         "mode=fillcrop",
                                         "maxheight=100",

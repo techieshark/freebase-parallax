@@ -27,7 +27,7 @@ function renderItem(itemID, div, onDone, onFocus) {
             }
         }
 		
-		var url = "http://www.freebase.com/view" + itemID;
+		var url = ParallaxConfig.corpusBaseUrl + "view" + itemID;
 
         div.innerHTML = 
             "<div class='freebase-hotshot-container'><table><tr valign='top'>" +
@@ -70,6 +70,6 @@ function renderItem(itemID, div, onDone, onFocus) {
         }
     };
     
-    var url = "http://hotshot.dfhuynh.user.dev.freebaseapps.com/acre/json?id=" + encodeURIComponent(itemID);
+    var url = "http://hotshot.dfhuynh.user.dev." + window.ParallaxConfig.appBaseUrl + "acre/json?id=" + encodeURIComponent(itemID);
     JsonpQueue.call(url, gotJSON, genericErrorHandler);
 }

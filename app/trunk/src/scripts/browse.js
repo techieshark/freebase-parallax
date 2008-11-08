@@ -331,7 +331,7 @@ function getMode(mode) {
 }
 
 function showQuery(q) {
-    var url = "http://www.freebase.com/tools/queryeditor?q=" + JSON.stringify(q);
+    var url = ParallaxConfig.corpusBaseUrl + "tools/queryeditor?q=" + JSON.stringify(q);
     window.open(url, "_blank");
 }
 
@@ -391,7 +391,7 @@ function getPermanentLink() {
     if (q > 0) {
         url = url.substr(0, q);
     }
-    return url + "?state=" + rison.encode(getState()).replace(/ /g, "%20");
+    return window.ParallaxConfig.appendConfigParams(url + "?state=" + rison.encode(getState()).replace(/ /g, "%20"));
 }
 
 function showPermanentLink() {

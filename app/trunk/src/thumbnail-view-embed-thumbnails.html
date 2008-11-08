@@ -34,6 +34,7 @@
         }
     </style>
     <script src="http://static.simile.mit.edu/ajax/api-2.0/simile-ajax-api.js"></script>
+    <script src="scripts/common.js"></script>
     <script src="scripts/externals/json2.js"></script>
     <script src="scripts/util/queue.js"></script>
     <script src="scripts/util/url.js"></script>
@@ -74,7 +75,7 @@
         function renderEntry(entry) {
             var a = document.createElement("a");
             a.className = "thumbnail";
-            a.href = "http://freebase.com/view" + entry.id;
+            a.href = ParallaxConfig.corpusBaseUrl + "view" + entry.id;
             a.style.width = thumbSize + "px";
             
             var thumbnail = null;
@@ -82,7 +83,7 @@
                 var thumbnailEntry = entry["/common/topic/image"][0];
                 if ("id" in thumbnailEntry) {
                     var thumbnail = document.createElement("img");
-                    thumbnail.src = "http://freebase.com/api/trans/image_thumb" + thumbnailEntry.id +
+                    thumbnail.src = ParallaxConfig.corpusBaseUrl + "api/trans/image_thumb" + thumbnailEntry.id +
                         "?" + [ 
                             "mode=fillcrop",
                             "maxheight=" + thumbSize,

@@ -246,7 +246,7 @@ MapView.prototype._embed = function() {
     
     var url = document.location.href;
     var q = url.indexOf("browse.html");
-    url = url.substr(0, q) + "map-view-embed.html?" + encodeURIComponent(JSON.stringify(job));
+    url = window.ParallaxConfig.appendConfigParams(url.substr(0, q) + "map-view-embed.html?" + encodeURIComponent(JSON.stringify(job)));
     
     var html = '<iframe height="500" width="100%" src="' + url + '"></iframe>';
     

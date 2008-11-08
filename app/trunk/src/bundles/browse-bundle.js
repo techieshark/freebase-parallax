@@ -331,7 +331,7 @@ function getMode(mode) {
 }
 
 function showQuery(q) {
-    var url = "http://www.freebase.com/tools/queryeditor?q=" + JSON.stringify(q);
+    var url = ParallaxConfig.corpusBaseUrl + "tools/queryeditor?q=" + JSON.stringify(q);
     window.open(url, "_blank");
 }
 
@@ -391,7 +391,7 @@ function getPermanentLink() {
     if (q > 0) {
         url = url.substr(0, q);
     }
-    return url + "?state=" + rison.encode(getState()).replace(/ /g, "%20");
+    return window.ParallaxConfig.appendConfigParams(url + "?state=" + rison.encode(getState()).replace(/ /g, "%20"));
 }
 
 function showPermanentLink() {
@@ -420,7 +420,31 @@ function showPivotingExplanation(elmt) {try {
         );
     }} catch (e) { log(e); }
 }
-function RootTypeCollectionDefinition(typeID, textSearch) {
+(function() {
+    window.ParallaxConfig = {
+        sandbox:        false,
+        corpusBaseUrl:  "http://www.freebase.com/",
+        appBaseUrl:     "freebaseapps.com/",
+        appendConfigParams: function(url) { return url; }
+    };
+    
+    var url = window.location.href;
+    if (url.indexOf("-sandbox/") >= 0 || url.indexOf("sandbox=1") >= 0) {
+        window.ParallaxConfig.sandbox = true;
+        window.ParallaxConfig.corpusBaseUrl = "http://sandbox.freebase.com/";
+        window.ParallaxConfig.appBaseUrl = "sandbox-freebaseapps.com/";
+        
+        if (url.indexOf("sandbox=1") >= 0) {
+            window.ParallaxConfig.appendConfigParams = function(url) {
+                if (url.indexOf("?") < 0) {
+                    return url + "?sandbox=1";
+                } else {
+                    return url + "&sandbox=1";
+                }
+            };
+        }
+    }
+})();function RootTypeCollectionDefinition(typeID, textSearch) {
     this._typeID = typeID;
     this._textSearch = (typeof textSearch == "string") ? textSearch : null;
     this._ownerCollection = null;
@@ -3393,7 +3417,7 @@ ParallaxSearchWidget.defaultQueryHandler = function(query) {
     if ("search" in query) {
         params.push("search=" + encodeURIComponent(query.search));
     }
-    window.location = "browse.html?" + params.join("&");
+    window.location = window.ParallaxConfig.appendConfigParams("browse.html?" + params.join("&"));
 };
 
 ParallaxSearchWidget._Impl = function(input, queryHandler) {
@@ -3851,7 +3875,7 @@ ParallaxSearchWidget._Impl.prototype._onQuerySpecificTopicsFailed = function(tex
 };
 
 ParallaxSearchWidget._Impl.prototype._queryIndividualTopics = function(text) {
-    var url = "http://www.freebase.com/api/service/search?strict=false&explain=false&limit=3&query=" + encodeURIComponent(text);
+    var url = ParallaxConfig.corpusBaseUrl + "api/service/search?strict=false&explain=false&limit=3&query=" + encodeURIComponent(text);
     var self = this;
 
     this._resultPanelDom.individualResultSection.style.display = "block";
@@ -3915,7 +3939,7 @@ ParallaxSearchWidget._Impl.prototype._onQueryIndividualTopicsDone = function(tex
                 
                 var img = document.createElement("img");
                 img.className = "parallax-search-widget-result-topic-image";
-                img.src = "http://freebase.com/api/trans/image_thumb" + imageID +
+                img.src = ParallaxConfig.corpusBaseUrl + "api/trans/image_thumb" + imageID +
                     "?" + [ 
                         "mode=fillcrop",
                         "maxheight=40",
@@ -5313,7 +5337,7 @@ JsonpQueue.call = function(url, onDone, onError, debug) {
 
 JsonpQueue.queryOne = function(query, onDone, onError, debug) {
     var q = JSON.stringify({ "q1" : { "query" : query } });
-    var url = 'http://freebase.com/api/service/mqlread?queries=' + encodeURIComponent(q);
+    var url = ParallaxConfig.corpusBaseUrl + 'api/service/mqlread?queries=' + encodeURIComponent(q);
     var onDone2 = function(o) {
         if (o.q1.code == "/api/status/error") {
             if (typeof onError == "function") {
@@ -5342,7 +5366,7 @@ function TopicPageRendering(itemID, outerDiv, onDone, focusHandler, pivotHandler
     this._pivotHandler = pivotHandler;
     
     var self = this;
-    var url = "http://hotshot.jdouglas.user.dev.freebaseapps.com/acre/json?id=" + encodeURIComponent(itemID);
+    var url = "http://hotshot.jdouglas.user.dev." + window.ParallaxConfig.appBaseUrl + "acre/json?id=" + encodeURIComponent(itemID);
     JsonpQueue.call(url, function(o) { self._render(o); }, function(e) {});
 };
 
@@ -5350,7 +5374,7 @@ TopicPageRendering.prototype._render = function(o) {
     var self = this;
     var itemID = this._itemID;
     var outerDiv = this._outerDiv;
-    outerDiv.innerHTML = '<h1>' + o.name + ' <a class="topic-view-freebase-link" href="http://www.freebase.com/view' + itemID + '">view on Freebase</a></h1><table cellspacing="0" cellpadding="0"><tr valign="top"><td></td><td width="30%"></td></tr></table>';
+    outerDiv.innerHTML = '<h1>' + o.name + ' <a class="topic-view-freebase-link" href="' + ParallaxConfig.corpusBaseUrl + 'view' + itemID + '">view on Freebase</a></h1><table cellspacing="0" cellpadding="0"><tr valign="top"><td></td><td width="30%"></td></tr></table>';
     
     var leftColumn = outerDiv.childNodes[1].rows[0].cells[0];
     var rightColumn = outerDiv.childNodes[1].rows[0].cells[1];
@@ -5421,7 +5445,7 @@ TopicPageRendering.prototype._render = function(o) {
                     div.className = "topic-view-thumbnail-container";
                     
                     var img = document.createElement("img");
-                    img.src = "http://freebase.com/api/trans/image_thumb" + id +
+                    img.src = ParallaxConfig.corpusBaseUrl + "api/trans/image_thumb" + id +
                         "?" + [ 
                             "mode=fill",
                             "maxheight=100",
@@ -5546,7 +5570,7 @@ TopicPageRendering.prototype._render = function(o) {
         if ("id" in valueEntry) {
             var a = document.createElement("a");
             a.className = "topic-view-focus-link";
-            a.href = "http://www.freebase.com/view" + valueEntry.id;
+            a.href = ParallaxConfig.corpusBaseUrl + "view" + valueEntry.id;
             a.title = valueEntry.id;
             $(a).click(function(evt) { 
                 Logging.log("topic-to-topic", { "id" : valueEntry.id });
@@ -5559,7 +5583,7 @@ TopicPageRendering.prototype._render = function(o) {
                 var img = document.createElement("img");
                 img.className = "topic-view-micro-thumbnail";
                 if (valueEntry["/common/topic/image"] != null) {
-                    img.src = "http://freebase.com/api/trans/image_thumb" + valueEntry["/common/topic/image"].id +
+                    img.src = ParallaxConfig.corpusBaseUrl + "api/trans/image_thumb" + valueEntry["/common/topic/image"].id +
                         "?" + [ 
                             "mode=fillcrop",
                             "maxheight=40",
@@ -6157,7 +6181,7 @@ function renderItem(itemID, div, onDone, onFocus) {
             }
         }
 		
-		var url = "http://www.freebase.com/view" + itemID;
+		var url = ParallaxConfig.corpusBaseUrl + "view" + itemID;
 
         div.innerHTML = 
             "<div class='freebase-hotshot-container'><table><tr valign='top'>" +
@@ -6200,7 +6224,7 @@ function renderItem(itemID, div, onDone, onFocus) {
         }
     };
     
-    var url = "http://hotshot.dfhuynh.user.dev.freebaseapps.com/acre/json?id=" + encodeURIComponent(itemID);
+    var url = "http://hotshot.dfhuynh.user.dev." + window.ParallaxConfig.appBaseUrl + "acre/json?id=" + encodeURIComponent(itemID);
     JsonpQueue.call(url, gotJSON, genericErrorHandler);
 }function createPopupMenuDom(element) {
     var div = document.createElement("div");
@@ -6954,7 +6978,7 @@ Chart1DView.prototype._embed = function() {
     
     var url = document.location.href;
     var q = url.indexOf("browse.html");
-    url = url.substr(0, q) + "chart-1d-view-embed.html?" + encodeURIComponent(JSON.stringify(job));
+    url = window.ParallaxConfig.appendConfigParams(url.substr(0, q) + "chart-1d-view-embed.html?" + encodeURIComponent(JSON.stringify(job)));
     
     var html = '<iframe height="600" width="100%" src="' + url + '"></iframe>';
     
@@ -7596,7 +7620,7 @@ Chart2DView.prototype._embed = function() {
             
             var url = document.location.href;
             var q = url.indexOf("browse.html");
-            url = url.substr(0, q) + "chart-2d-view-embed.html?" + encodeURIComponent(JSON.stringify(job));
+            url = window.ParallaxConfig.appendConfigParams(url.substr(0, q) + "chart-2d-view-embed.html?" + encodeURIComponent(JSON.stringify(job)));
             
             var html = '<iframe height="600" width="100%" src="' + url + '"></iframe>';
             
@@ -7734,7 +7758,7 @@ function mapViewQuery(job, onDone) {
                         if (a != null && a.length > 0) {
                             var node2 = a[0];
                             if ("id" in node2 && typeof node2.id == "string") {
-                                point.image = "http://freebase.com/api/trans/image_thumb" + node2.id +
+                                point.image = ParallaxConfig.corpusBaseUrl + "api/trans/image_thumb" + node2.id +
                                     "?" + [ 
                                         "mode=fillcrop",
                                         "maxheight=100",
@@ -8006,7 +8030,7 @@ MapView.prototype._embed = function() {
     
     var url = document.location.href;
     var q = url.indexOf("browse.html");
-    url = url.substr(0, q) + "map-view-embed.html?" + encodeURIComponent(JSON.stringify(job));
+    url = window.ParallaxConfig.appendConfigParams(url.substr(0, q) + "map-view-embed.html?" + encodeURIComponent(JSON.stringify(job)));
     
     var html = '<iframe height="500" width="100%" src="' + url + '"></iframe>';
     
@@ -8367,7 +8391,7 @@ function tabularViewRender(div, job, rows, settings) {
      */
     var createTopicValue = function(valueEntry) {
         var a = document.createElement("a");
-        a.href = "http://www.freebase.com/view" + valueEntry.id;
+        a.href = ParallaxConfig.corpusBaseUrl + "view" + valueEntry.id;
         a.appendChild(document.createTextNode(valueEntry.name));
         $(a).click(function(evt) { 
             Logging.log("tabular-view-to-topic", { "id" : valueEntry.id });
@@ -8754,7 +8778,7 @@ TabularView.prototype._embed = function() {
     
     var url = document.location.href;
     var q = url.indexOf("browse.html");
-    url = url.substr(0, q) + "tabular-view-embed.html?" + encodeURIComponent(JSON.stringify(job));
+    url = window.ParallaxConfig.appendConfigParams(url.substr(0, q) + "tabular-view-embed.html?" + encodeURIComponent(JSON.stringify(job)));
     
     var html = '<iframe height="600" width="100%" src="' + url + '"></iframe>';
     
@@ -9432,7 +9456,7 @@ TimelineView.prototype._embed = function() {
     
     var url = document.location.href;
     var q = url.indexOf("browse.html");
-    url = url.substr(0, q) + "timeline-view-embed.html?" + encodeURIComponent(JSON.stringify(job));
+    url = window.ParallaxConfig.appendConfigParams(url.substr(0, q) + "timeline-view-embed.html?" + encodeURIComponent(JSON.stringify(job)));
     
     var html = '<iframe height="500" width="100%" src="' + url + '"></iframe>';
     

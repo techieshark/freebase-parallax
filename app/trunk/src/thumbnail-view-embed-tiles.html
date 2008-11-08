@@ -21,6 +21,7 @@
         }
     </style>
     <script src="http://static.simile.mit.edu/ajax/api-2.0/simile-ajax-api.js"></script>
+    <script src="scripts/common.js"></script>
     <script src="scripts/externals/json2.js"></script>
     <script src="scripts/util/queue.js"></script>
     <script src="scripts/util/url.js"></script>
@@ -64,7 +65,7 @@
         }
         
         function onFocus(itemID, name) {
-            window.open("http://freebase.com/view" + itemID, "_blank");
+            window.open(ParallaxConfig.corpusBaseUrl + "view" + itemID, "_blank");
         }
         
         function showLightboxForThumbnail(evt) {
@@ -89,7 +90,7 @@
                     
                 var table = div.firstChild.firstChild;
                 var tr = table.rows[0];
-                tr.cells[1].childNodes[0].href = "http://freebase.com/view" + itemID;
+                tr.cells[1].childNodes[0].href = ParallaxConfig.corpusBaseUrl + "view" + itemID;
                 
                 if ("thumbnails" in o && o.thumbnails.length > 0) {
                     var thumbnailEntry = o.thumbnails[0];
@@ -109,7 +110,7 @@
                 }
             };
             
-            var url = "http://hotshot.dfhuynh.user.dev.freebaseapps.com/acre/json?thumbnailsize=" + thumbSize + "&id=" + encodeURIComponent(itemID);
+            var url = "http://hotshot.dfhuynh.user.dev." + window.ParallaxConfig.appBaseUrl + "acre/json?thumbnailsize=" + thumbSize + "&id=" + encodeURIComponent(itemID);
             JsonpQueue.call(url, gotJSON, genericErrorHandler);
         }
     </script>

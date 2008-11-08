@@ -10,7 +10,7 @@ function TopicPageRendering(itemID, outerDiv, onDone, focusHandler, pivotHandler
     this._pivotHandler = pivotHandler;
     
     var self = this;
-    var url = "http://hotshot.jdouglas.user.dev.freebaseapps.com/acre/json?id=" + encodeURIComponent(itemID);
+    var url = "http://hotshot.jdouglas.user.dev." + window.ParallaxConfig.appBaseUrl + "acre/json?id=" + encodeURIComponent(itemID);
     JsonpQueue.call(url, function(o) { self._render(o); }, function(e) {});
 };
 
@@ -18,7 +18,7 @@ TopicPageRendering.prototype._render = function(o) {
     var self = this;
     var itemID = this._itemID;
     var outerDiv = this._outerDiv;
-    outerDiv.innerHTML = '<h1>' + o.name + ' <a class="topic-view-freebase-link" href="http://www.freebase.com/view' + itemID + '">view on Freebase</a></h1><table cellspacing="0" cellpadding="0"><tr valign="top"><td></td><td width="30%"></td></tr></table>';
+    outerDiv.innerHTML = '<h1>' + o.name + ' <a class="topic-view-freebase-link" href="' + ParallaxConfig.corpusBaseUrl + 'view' + itemID + '">view on Freebase</a></h1><table cellspacing="0" cellpadding="0"><tr valign="top"><td></td><td width="30%"></td></tr></table>';
     
     var leftColumn = outerDiv.childNodes[1].rows[0].cells[0];
     var rightColumn = outerDiv.childNodes[1].rows[0].cells[1];
@@ -89,7 +89,7 @@ TopicPageRendering.prototype._render = function(o) {
                     div.className = "topic-view-thumbnail-container";
                     
                     var img = document.createElement("img");
-                    img.src = "http://freebase.com/api/trans/image_thumb" + id +
+                    img.src = ParallaxConfig.corpusBaseUrl + "api/trans/image_thumb" + id +
                         "?" + [ 
                             "mode=fill",
                             "maxheight=100",
@@ -214,7 +214,7 @@ TopicPageRendering.prototype._render = function(o) {
         if ("id" in valueEntry) {
             var a = document.createElement("a");
             a.className = "topic-view-focus-link";
-            a.href = "http://www.freebase.com/view" + valueEntry.id;
+            a.href = ParallaxConfig.corpusBaseUrl + "view" + valueEntry.id;
             a.title = valueEntry.id;
             $(a).click(function(evt) { 
                 Logging.log("topic-to-topic", { "id" : valueEntry.id });
@@ -227,7 +227,7 @@ TopicPageRendering.prototype._render = function(o) {
                 var img = document.createElement("img");
                 img.className = "topic-view-micro-thumbnail";
                 if (valueEntry["/common/topic/image"] != null) {
-                    img.src = "http://freebase.com/api/trans/image_thumb" + valueEntry["/common/topic/image"].id +
+                    img.src = ParallaxConfig.corpusBaseUrl + "api/trans/image_thumb" + valueEntry["/common/topic/image"].id +
                         "?" + [ 
                             "mode=fillcrop",
                             "maxheight=40",
