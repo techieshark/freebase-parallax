@@ -1343,37 +1343,42 @@ TypeStack.computeDimensions = function(
             
             var cvtTypeID = propertyRecord.expectedType;
             var cvtTypeRecord = SchemaUtil.typeRecords[cvtTypeID];
-            if (cvtTypeRecord == null) {
-                return;
+            if (cvtTypeRecord != null) {
+                var path = [].concat(previousPath);
+                path.push({ property: propertyID, forward: true });
+                
+                TypeStack._computeNestedDimensions(
+                    dimensions, 
+                    rootTypeID, 
+                    cvtTypeID, 
+                    propertyRecord.masterProperty, // to ignore
+                    path, 
+                    previousLabel + cvtTypeRecord.name + "/", 
+                    processedProperties,
+                    includeNativeTypes
+                );
             }
             
-            var path = [].concat(previousPath);
-            path.push({ property: propertyID, forward: true });
-            
-            TypeStack._computeNestedDimensions(
-                dimensions, 
-                rootTypeID, 
-                cvtTypeID, 
-                propertyRecord.masterProperty, // to ignore
-                path, 
-                previousLabel + cvtTypeRecord.name + "/", 
-                processedProperties,
-                includeNativeTypes
-            );
-        } else {
-            var path = [].concat(previousPath);
-            path.push({ property: propertyID, forward: true });
-            
-            dimensions.push({
-                path:               path,
-                typeID:             rootTypeID,
-                label:              propertyRecord.name,
-                fullLabel:          previousLabel + propertyRecord.name,
-                expectedType:       propertyRecord.expectedType,
-                expectedTypeLabel:  propertyRecord.expectedTypeLabel,
-                count:              0
-            });
+            /*
+             *  Exception: treat /location/mailing_address as first class, too.
+             */
+            if (propertyRecord.expectedType != "/location/mailing_address") {
+                return;
+            } // else, fall through
         }
+        
+        var path = [].concat(previousPath);
+        path.push({ property: propertyID, forward: true });
+        
+        dimensions.push({
+            path:               path,
+            typeID:             rootTypeID,
+            label:              propertyRecord.name,
+            fullLabel:          previousLabel + propertyRecord.name,
+            expectedType:       propertyRecord.expectedType,
+            expectedTypeLabel:  propertyRecord.expectedTypeLabel,
+            count:              0
+        });
     }
 };
 
