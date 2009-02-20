@@ -9023,6 +9023,9 @@ function timelineViewQuery(job, onDone) {
     }
     
     var startQueryNode = extendQueryNodeWithPath(proxyQueryNode, job.startPath);
+    if (!("value" in startQueryNode)) {
+        startQueryNode["value"] = null;
+    }
     
     if (job.hasEnd) {
         var endQueryNode = extendQueryNodeWithPath(proxyQueryNode, job.endPath);
